@@ -1,64 +1,110 @@
-# GIS Project: Optimizing Commercial/Industrial Rooftop Solar Potential in Trier]
+# GIS Project: Optimizing Commercial & Industrial Rooftop Solar Potential in Trier
 
 ---
 
 ## 1. Project Overview
 
-This GIS (Geographic Information System) project aims to identify and analyze optimal rooftop locations for photovoltaic (PV) solar panel installations on commercial and industrial buildings within Trier, Germany. Developed as a proof-of-concept for an internship application at Strrom GmbH, this project leverages geospatial data and analysis techniques to support sustainable energy development and reduce energy costs for businesses.
+This GIS (Geographic Information System) project aims to identify, analyze, and visualize optimal rooftop locations for photovoltaic (PV) solar panel installations on commercial and industrial buildings within **Trier, Germany**. Developed as a proof-of-concept for an internship application at Strrom GmbH, this project leverages geospatial data and analysis techniques to support sustainable energy development and reduce energy costs for businesses.
 
 ## 2. Project Goals
 
-* **Identify High-Potential Rooftops:** Pinpoint commercial and industrial buildings with significant solar energy generation potential based on factors like roof area, orientation, slope, and solar irradiance.
-* **Quantify Sustainability Impact:** Provide estimations of potential energy production and associated CO2 emission reductions for identified optimal sites.
-* **Inform Strategic Planning:** Offer geospatial insights that could assist Strrom GmbH in targeting new clients, prioritizing project development, and potentially optimizing their operational network.
+* **Identify High-Potential Rooftops:** Pinpoint commercial and industrial buildings with significant estimated annual solar energy generation potential based on factors like usable roof area and average global horizontal irradiation.
+* **Quantify Sustainability Impact:** Provide estimations of potential annual electricity production (in kWh) for identified optimal sites, directly linking to Strrom's goals of reducing energy costs and promoting sustainability.
+* **Inform Strategic Planning:** Offer geospatial insights that could assist Strrom GmbH in targeting new clients and prioritizing project development within the Trier region.
 
-## 3. Methodology
+## 3. Study Area
 
-This project utilizes a multi-criteria spatial analysis approach:
+The primary study area for this proof-of-concept is the city of **Trier**, located in Rhineland-Palatinate, Germany.
 
-1.  **Data Acquisition:** Sourcing relevant geospatial datasets for the study area.
-2.  **Pre-processing:** Cleaning, reprojecting, and preparing raw data for analysis.
-3.  **Rooftop Analysis:** Extracting and analyzing roof characteristics (area, slope, aspect) suitable for solar installation.
-4.  **Solar Irradiance Calculation:** Estimating solar radiation received by suitable roof areas, accounting for shading.
-5.  **Suitability Modeling:** Combining various criteria to rank and prioritize rooftops based on their solar potential.
-6.  **Visualization:** Creating maps and potentially dashboards to present findings clearly.
+## 4. Methodology & Workflow
 
-## 4. Study Area
+This project followed a structured GIS workflow, broken down into five main phases:
 
-The primary study area for this proof-of-concept is **[Your Chosen City/Region, e.g., the city of Trier or "the Industrial Park Trier-Ehrang"]**, located in Rhineland-Palatinate, Germany.
+### Phase 1: Project Setup & Initial Planning
+
+1.  **Define Study Area:** Established **Trier, Germany** as the specific area of interest.
+2.  **Choose GIS Software:** Utilized **QGIS** as the primary software for all spatial processing and mapping.
+3.  **Set up Project Directory:** Created a structured folder system (`Data/Raw_Data`, `Data/Processed_Data`, `Maps_Layouts`, `Reports_Notes`, `GIS_Project_Files`) for efficient data management.
+
+### Phase 2: Data Acquisition
+
+1.  **Building Footprints:**
+    * **Source:** OpenStreetMap (OSM) via Overpass Turbo.
+    * **Method:** Queried and downloaded all `building=*` geometries within the Trier bounding box.
+    * **Output:** `trier_buildings.geojson`.
+2.  **Digital Surface Model (DSM):**
+    * **Source:** State Office for Surveying and Geobasisinformation Rhineland-Palatinate (LVermGeo RLP) Open Data Portal.
+    * **Method:** Downloaded high-resolution Digital Surface Model (DOM) tiles covering Trier.
+    * **Output:** `.tif` raster files.
+3.  **Solar Irradiance Data:**
+    * **Source:** PVGIS (Photovoltaic Geographical Information System) from the European Commission.
+    * **Method:** Configured PVGIS to provide **Monthly Averages** of `H(h)_m` (Irradiation on horizontal plane) in kWh/m²/month for Trier, covering years 2005-2023.
+    * **Output:** `PVGIS_monthly_trier.csv`.
+4.  **Commercial/Industrial Land Use Data (for Filtering):**
+    * **Source:** OpenStreetMap (OSM) via Overpass Turbo.
+    * **Method:** Queried `landuse=commercial` and `landuse=industrial` polygons within Trier.
+    * **Output:** `trier_landuse_commercial_industrial.geojson`.
+
+### Phase 3: Data Pre-processing & Preparation in QGIS
+
+1.  **Load Raw Data:** Imported all downloaded `.geojson` and `.tif` files into the QGIS project.
+2.  **Coordinate Reference System (CRS) Management:**
+    * Set QGIS project CRS to **EPSG:25832 (ETRS89 / UTM zone 32N)**.
+    * Explicitly reprojected all vector and raster layers to `EPSG:25832` to ensure accurate alignment and calculations.
+3.  **Fix Geometries:** Applied the **"Fix geometries"** tool (Processing Toolbox) to the reprojected buildings layer to correct any topological errors, ensuring valid polygons for analysis.
+    * **Output:** `trier_buildings_FIXED.geojson`.
+4.  **Filter Commercial & Industrial Buildings:**
+    * **Method:** Used the **"Select by location"** tool (Processing Toolbox) to select buildings from `trier_buildings_FIXED` that `are within` the `trier_landuse_commercial_industrial` polygons.
+    * **Output:** Saved selected features as `trier_ci_buildings_final.geojson`.
+
+### Phase 4: Core Analysis: Simplified Solar Potential Calculation (in QGIS)
+
+1.  **Calculate Building Footprint Area:**
+    * **Method:** Used the **Field Calculator** to add `Footprint_Area_sqm` (in m²) to `trier_ci_buildings_final`.
+2.  **Derive Annual Global Horizontal Irradiation (GHI):**
+    * **Method:** Summed the `H(h)_m` column from the PVGIS CSV (all 12 months) to get total annual GHI in kWh/m²/year. The average from 2005-2023 was calculated as **`1146.55 kWh/m²/year`**.
+    * **Integration:** Converted this to Wh/m²/year (`1,146,550 Wh/m²/year`) and added it as a new attribute field (`Annual_GHI_Wh_m2`) to every building using the Field Calculator.
+3.  **Estimate Usable Roof Area:**
+    * **Method:** Used the **Field Calculator** to create a new field `Usable_Roof_Area_sqm`.
+    * **Expression:** `"Footprint_Area_sqm" * 0.7` (assuming 70% of footprint is usable).
+4.  **Calculate Estimated Annual Energy Potential:**
+    * **Method:** Used the **Field Calculator** to create the final output field `Annual_Energy_kWh`.
+    * **Expression:** `"Usable_Roof_Area_sqm" * "Annual_GHI_Wh_m2" * 0.18 / 1000` (incorporating 18% panel efficiency and converting Wh to kWh).
+    * **Output:** The final processed layer, `annual_energy_commercial.gpkg`, containing the `Annual_Energy_kWh` attribute for each building.
+
+### Phase 5: Visualization & Map Production in QGIS
+
+1.  **Symbolize Results:** Applied **"Graduated"** symbology to `annual_energy_commercial.gpkg` using `Annual_Energy_kWh`, with clear class breaks and a sequential color ramp (light reddish-orange to dark purple).
+2.  **Add Basemap:** Integrated an **OSM Standard basemap** for geographic context.
+3.  **Create Print Layout:** Designed a professional map layout in QGIS's Print Layout Manager.
+4.  **Cartographic Elements:** Added essential map elements including a main map view, multiple inset maps, title ("Trier Solar Potential Map: Commercial & Industrial Rooftops"), legend ("Estimated Annual Solar Energy Potential (kWh/year)"), scale bar, North arrow, and full attribution (Data Sources, Analysis by).
+5.  **Export Map:** Exported the final map layout as a high-resolution image.
 
 ## 5. Data Sources
 
-The following types of data are being utilized in this project:
+The following types of data were utilized in this project:
 
-* **Building Footprints:** [e.g., OpenStreetMap (OSM) data, local geodata portals like LVermGeo RLP]
-* **Digital Surface Model (DSM) / Digital Elevation Model (DEM):** [e.g., Copernicus EU-DEM, data from state geoportals like LVermGeo RLP, if higher resolution is available]
-* **Solar Irradiance Data:** [e.g., PVGIS (Photovoltaic Geographical Information System), Global Solar Atlas]
-* **Commercial/Industrial Zoning/Land Use Data (Optional):** [e.g., OpenStreetMap `landuse` tags, municipal planning data]
+* **Building Footprints & Land Use:** OpenStreetMap (OSM) via Overpass Turbo
+* **Digital Surface Model (DSM):** State Office for Surveying and Geobasisinformation Rhineland-Palatinate (LVermGeo RLP)
+* **Solar Irradiance Data:** PVGIS (Photovoltaic Geographical Information System) - European Commission
 
 ## 6. Tools & Technologies
 
-* **GIS Software:** [e.g., QGIS / ArcGIS Pro]
-* **Programming (Optional):** [e.g., Python with libraries like GeoPandas, Shapely (if you plan to use scripting)]
+* **GIS Software:** QGIS (including its integrated Processing Toolbox)
+* **Data Sourcing Tools:** Overpass Turbo, PVGIS website
 * **Version Control:** Git / GitHub
 
 ## 7. How to Explore This Project
 
-[You can add instructions here later, e.g., "Clone this repository and open the project file in QGIS/ArcGIS Pro."]
+To explore this project:
+1.  Clone this repository to your local machine.
+2.  Download the raw data as described in **Phase 2** (the `.tif` files are too large for GitHub).
+3.  Open the QGIS project file (will be added here upon project finalization) located in `GIS_Project_Files/`.
+4.  Load the processed layers from `Data/Processed_Data/` to view the analysis results.
 
-## 8. Next Steps & Future Work (Post-Internship)
-
-Should this project evolve beyond the internship application, potential future enhancements include:
-
-* Integrating real-world energy consumption data for more accurate savings estimations.
-* Developing a more sophisticated 3D roof analysis using LiDAR data.
-* Expanding the analysis to other regions or even a nationwide scale.
-* Building an interactive web-GIS application for easier data exploration.
-
-## 9. Contact
+## 8. Contact
 
 Feel free to reach out with any questions or feedback!
 
-[Your Name]
-[Your Email Address or LinkedIn Profile URL]
-[Your University (Optional)]
+Enes Gültekin
+www.linkedin.com/in/enes-gültekin
