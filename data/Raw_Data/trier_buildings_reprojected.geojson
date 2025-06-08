@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "trier_buildings_reprojected",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::25832" } },
+"features": [
+
+]
+}
