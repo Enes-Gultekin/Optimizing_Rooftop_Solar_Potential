@@ -99,7 +99,7 @@ The following types of data were utilized in this project:
 To explore this project:
 1.  Clone this repository to your local machine.
 2.  Download the raw data as described in **Phase 2** (the `.tif` files are too large for GitHub).
-3.  Open the QGIS project file (will be added here upon project finalization) located in `GIS_Project_Files/`.
+3.  Open the QGIS project file (will be added here upon project finalization) located in `Optimizing_Rooftop_Solar_Potential/`.
 4.  Load the processed layers from `Data/Processed_Data/` to view the analysis results.
 
 ## 8. Contact
